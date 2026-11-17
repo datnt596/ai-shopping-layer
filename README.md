@@ -73,10 +73,5 @@ npx serve .
 
 It's deployed with **GitHub Pages**: **Settings → Pages → Deploy from a branch → `main` / root**. Any static host also works, including Vercel, Netlify and Cloudflare Pages.
 
-## Team
-
-<!-- Add team member names and roles here -->
-
----
 
 *Course project, prototype only. Not a commercial service. Product names and brands belong to their respective owners.*

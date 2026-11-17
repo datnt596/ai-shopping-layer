@@ -4,7 +4,7 @@
 
 This repository holds an **interactive prototype** of the product, built as a startup project for an Entrepreneurship course.
 
-🔗 **Live demo:** https://YOUR-USERNAME.github.io/YOUR-REPO/ <!-- replace with your GitHub Pages URL -->
+🔗 **Live demo:** (https://datnt596.github.io/ai-shopping-layer/)
 
 > ⚠️ **Demo data only.** All prices, stock levels, sellers ("Nhà bán A", "Nhà bán B", "Sàn C") and check times are simulated. Nothing is pulled from real marketplaces, and every seller link points to `example.com`.
 

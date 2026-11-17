@@ -1,0 +1,2204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Shopping Layer — Trợ lý tìm & so sánh điện thoại theo nhu cầu</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.22s ease-out forwards;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="bg-white/95 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <!-- Brand -->
+      <button id="btnBrandLogo" type="button" class="flex items-center gap-2.5 text-left group focus:outline-none">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm group-hover:shadow transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-lg tracking-tight text-slate-900">AI Shopping Layer<span class="text-blue-600"></span></span>
+            <span class="hidden sm:inline text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">Bản thử nghiệm</span>
+            <span class="hidden sm:inline text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 whitespace-nowrap">Dữ liệu minh họa</span>
+          </div>
+        </div>
+      </button>
+
+      <!-- Right Actions -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button
+          id="btnHeaderCompare"
+          type="button"
+          class="hidden items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-800 text-xs font-semibold transition"
+        >
+          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span>Bảng so sánh (<span id="headerCompareCount">0</span>)</span>
+        </button>
+
+        <button
+          id="btnResetSession"
+          type="button"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold transition"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span>Tìm mới</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- DEMO DATA NOTICE -->
+  <div class="bg-amber-50 border-b border-amber-200 text-amber-900">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-1.5 text-center text-[11px] sm:text-xs">
+      <strong>Demo data, not a live feed.</strong> Dữ liệu minh họa: giá, tồn kho, nhà bán và thời điểm kiểm tra đều là giả lập, không lấy từ sàn thật.
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+
+    <!-- HERO SEARCH SECTION -->
+    <section class="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-7 transition-all">
+      <div class="max-w-3xl mx-auto space-y-4">
+        <div class="text-center sm:text-left space-y-1">
+          <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            Bạn đang tìm điện thoại như thế nào?
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-500">
+            Mô tả tự nhiên nhu cầu sử dụng, người dùng và tầm giá — AI sẽ lọc ra 3–5 mẫu đáng mua nhất, chỉ rõ ưu/nhược điểm và nơi bán.
+          </p>
+        </div>
+
+        <!-- Conversation Context Pill (Shown when refining previous search) -->
+        <div id="discourseMemoryBanner" class="hidden px-3.5 py-2.5 rounded-2xl bg-blue-50/90 border border-blue-200/80 text-xs text-blue-950 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+            <span>Đang lọc tiếp từ yêu cầu: <strong id="prevQueryText" class="font-semibold">""</strong></span>
+          </div>
+          <button id="btnClearMemoryInline" type="button" class="text-blue-700 hover:text-blue-900 font-semibold underline shrink-0">
+            Xóa bộ lọc cũ
+          </button>
+        </div>
+
+        <!-- Search Bar -->
+        <form id="searchForm" class="relative flex flex-col sm:flex-row gap-2.5">
+          <div class="relative flex-1">
+            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+            <input
+              id="queryInput"
+              type="text"
+              autocomplete="off"
+              placeholder="VD: Tìm iPhone 15 Pro Max giá rẻ nhất"
+              class="w-full pl-11 pr-10 py-3.5 rounded-2xl border border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base text-slate-900 placeholder-slate-400 transition outline-none"
+            />
+            <button
+              id="btnClearInput"
+              type="button"
+              class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition"
+              title="Xóa nội dung"
+            >
+              ✕
+            </button>
+          </div>
+          <button
+            id="btnSubmitQuery"
+            type="submit"
+            class="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm sm:text-base shadow-sm transition flex items-center justify-center gap-2 shrink-0"
+          >
+            <span>Tư vấn ngay</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          </button>
+        </form>
+
+        <!-- Popular Natural Queries -->
+        <div class="pt-1 flex flex-wrap items-center gap-1.5 text-xs">
+          <span class="text-slate-400 font-medium mr-1">Thử tìm nhanh:</span>
+          <button type="button" data-sample="Tìm máy cho mẹ ở quê dưới 7 củ, pin trâu màn to" class="sample-query-chip px-3 py-1.5 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 border border-slate-200/80 transition">
+            👵 Máy cho mẹ ở quê &lt; 7 củ, pin trâu màn to
+          </button>
+          <button type="button" data-sample="Điện thoại ngon 5 triệu" class="sample-query-chip px-3 py-1.5 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 border border-slate-200/80 transition">
+            ✨ Điện thoại ngon 5 triệu
+          </button>
+          <button type="button" data-sample="Máy chơi game màn 120Hz pin trâu dưới 6 củ" class="sample-query-chip px-3 py-1.5 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 border border-slate-200/80 transition">
+            🎮 Máy chơi game 120Hz dưới 6 củ
+          </button>
+          <button type="button" data-sample="iPhone 15 Pro Max dưới 5 triệu" class="sample-query-chip px-3 py-1.5 rounded-full bg-slate-100 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 text-slate-700 border border-slate-200/80 transition">
+            📱 iPhone 15 Pro Max dưới 5 triệu
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI UNDERSTANDING & CRITERIA BAR -->
+    <section id="understandingBar" class="hidden"></section>
+
+    <!-- DYNAMIC MAIN STAGE (Results / Clarification / Zero-Match / Comparison) -->
+    <section id="mainStageContainer" class="space-y-5"></section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200/80 mt-12">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-700">AI Shopping Layer</span>
+        <span>— Lớp trợ lý khám phá &amp; đối chiếu thông số điện thoại trước khi mua.</span>
+      </div>
+      <div class="text-slate-400">
+        Dữ liệu minh họa, không phải dữ liệu trực tiếp: giá, tồn kho, nhà bán và thời điểm kiểm tra đều là giả lập · Giao dịch thực hiện trực tiếp tại nhà bán.
+      </div>
+    </div>
+  </footer>
+
+  <!-- MERCHANT REDIRECT MODAL -->
+  <div id="outboundModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-fade-in">
+      <div class="flex items-center justify-between">
+        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+          Chuyển hướng tới nhà bán
+        </span>
+        <button id="btnCloseOutboundModal" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">✕</button>
+      </div>
+      <div id="outboundModalBody" class="space-y-3 text-sm text-slate-700"></div>
+      <div class="pt-2 flex items-center justify-end gap-2.5">
+        <button id="btnCancelOutbound" type="button" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition">
+          Ở lại trang so sánh
+        </button>
+        <button id="btnConfirmOutbound" type="button" class="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition shadow-xs">
+          Tiếp tục tới trang bán hàng ↗
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // 1. PRODUCT CATALOG
+    // ============================================================================
+    function createPhoneSvgDataUri(accentHex, secondaryHex, badgeText, screenText) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 280" width="240" height="280">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="${accentHex}" stop-opacity="0.10"/>
+            <stop offset="100%" stop-color="${secondaryHex}" stop-opacity="0.22"/>
+          </linearGradient>
+          <linearGradient id="scr" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${accentHex}"/>
+            <stop offset="100%" stop-color="${secondaryHex}"/>
+          </linearGradient>
+        </defs>
+        <rect width="240" height="280" rx="28" fill="url(#bg)"/>
+        <rect x="58" y="20" width="124" height="240" rx="22" fill="#0f172a" stroke="#334155" stroke-width="3"/>
+        <rect x="64" y="28" width="112" height="224" rx="16" fill="url(#scr)"/>
+        <circle cx="120" cy="38" r="4" fill="#0f172a"/>
+        <rect x="74" y="56" width="92" height="40" rx="9" fill="#ffffff" fill-opacity="0.18"/>
+        <text x="120" y="73" text-anchor="middle" fill="#ffffff" font-family="Inter, sans-serif" font-weight="700" font-size="11">${badgeText}</text>
+        <text x="120" y="88" text-anchor="middle" fill="#f1f5f9" font-family="Inter, sans-serif" font-weight="500" font-size="9">${screenText}</text>
+        <rect x="74" y="106" width="42" height="26" rx="6" fill="#0f172a" fill-opacity="0.24"/>
+        <rect x="124" y="106" width="42" height="26" rx="6" fill="#0f172a" fill-opacity="0.24"/>
+        <rect x="74" y="140" width="92" height="44" rx="8" fill="#ffffff" fill-opacity="0.14"/>
+        <rect x="100" y="242" width="40" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.7"/>
+      </svg>`;
+      return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
+    }
+
+    const PRODUCT_CATALOG = [
+      {
+        id: "xiaomi-entry-2026",
+        name: "Xiaomi Entry 2026 (4GB/64GB)",
+        brand: "Xiaomi",
+        image_url: createPhoneSvgDataUri("#2563eb", "#1d4ed8", "Pin 6000mAh", "Màn 6.9\" · 120Hz"),
+        source_note: "Nguồn thông số (minh họa): Xiaomi VN & Nhà bán A",
+        spec_conflicts: {},
+        price_summary: {
+          min_price_vnd: 2890000,
+          max_price_vnd: 2990000,
+          primary_seller: "Sàn C"
+        },
+        offers: [
+          {
+            seller_name: "Sàn C",
+            price_vnd: 2890000,
+            affiliate_url: "https://example.com/san-c/xiaomi-entry-2026",
+            verified_label: "Kiểm tra 3 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Nhà bán A",
+            price_vnd: 2990000,
+            affiliate_url: "https://example.com/nha-ban-a/xiaomi-entry-2026",
+            verified_label: "Kiểm tra 4 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Nhà bán B",
+            price_vnd: 2950000,
+            affiliate_url: "https://example.com/nha-ban-b/xiaomi-entry-2026.html",
+            verified_label: "Kiểm tra 1 ngày trước",
+            in_stock: true,
+            is_stale: true
+          }
+        ],
+        specs: {
+          performance: {
+            chipset: "Unisoc T7250 8 nhân",
+            ram_gb: 4,
+            storage_gb: 64,
+            expandable_storage: "MicroSD tối đa 2 TB"
+          },
+          display: {
+            size_inch: 6.9,
+            panel: "LCD",
+            resolution: "HD+ (720 x 1600)",
+            refresh_rate_hz: 120,
+            brightness_nits: 800
+          },
+          camera: {
+            rear_main_mp: 13,
+            front_mp: 8,
+            ois: false
+          },
+          battery: {
+            capacity_mah: 6000,
+            charging_w: 15
+          },
+          connectivity: {
+            network: "4G",
+            has_nfc: true,
+            headphone_jack: true
+          },
+          features_build: {
+            biometrics: "Vân tay cạnh viền, Mở khóa khuôn mặt",
+            ip_rating: null,
+            weight_g: 208,
+            material: "Khung & Mặt lưng nhựa",
+            loudspeaker_boost: true
+          }
+        },
+        trade_offs: {
+          strengths: [
+            "Pin 6000mAh cực khỏe, nghe gọi chờ lên tới 2–3 ngày",
+            "Màn hình cực đại 6.9 inch 120Hz hiển thị chữ to, dễ đọc cho người lớn tuổi",
+            "Giá mềm dưới 3 triệu, có sẵn NFC và cổng tai nghe 3.5mm"
+          ],
+          weaknesses: [
+            "Công suất sạc 15W khá chậm với viên pin 6000mAh",
+            "Độ phân giải dừng ở mức HD+ (720p)",
+            "Chip Unisoc và RAM 4GB chỉ hợp lướt web, Zalo, YouTube cơ bản"
+          ]
+        }
+      },
+      {
+        id: "honor-x7b-6000mah",
+        name: "Honor X7b Pin 6000mAh (8GB/256GB)",
+        brand: "Honor",
+        image_url: createPhoneSvgDataUri("#059669", "#047857", "6000mAh · Loa Kép", "6.8\" FHD+ · 256GB"),
+        source_note: "Nguồn thông số (minh họa): Nhà bán A & Nhà bán B",
+        spec_conflicts: {
+          "display.brightness_nits": {
+            status: "Chưa xác minh",
+            reason: "Nhà bán A ghi 850 nits, một số đại lý ghi 600 nits (Không tính vào điểm xếp hạng)"
+          }
+        },
+        price_summary: {
+          min_price_vnd: 4690000,
+          max_price_vnd: 4790000,
+          primary_seller: "Nhà bán A"
+        },
+        offers: [
+          {
+            seller_name: "Nhà bán A",
+            price_vnd: 4790000,
+            affiliate_url: "https://example.com/nha-ban-a/honor-x7b",
+            verified_label: "Kiểm tra 2 giờ trước",
+            in_stock: false,
+            is_stale: false
+          },
+          {
+            seller_name: "Nhà bán B",
+            price_vnd: 4690000,
+            affiliate_url: "https://example.com/nha-ban-b/honor-x7b.html",
+            verified_label: "Kiểm tra 1 ngày trước",
+            in_stock: true,
+            is_stale: true
+          }
+        ],
+        specs: {
+          performance: {
+            chipset: "Snapdragon 680 8 nhân",
+            ram_gb: 8,
+            storage_gb: 256,
+            expandable_storage: "MicroSD tối đa 1 TB"
+          },
+          display: {
+            size_inch: 6.8,
+            panel: "IPS LCD",
+            resolution: "Full HD+ (1080 x 2412)",
+            refresh_rate_hz: 90,
+            brightness_nits: 850
+          },
+          camera: {
+            rear_main_mp: 108,
+            front_mp: 8,
+            ois: false
+          },
+          battery: {
+            capacity_mah: 6000,
+            charging_w: 35
+          },
+          connectivity: {
+            network: "4G",
+            has_nfc: true,
+            headphone_jack: true
+          },
+          features_build: {
+            biometrics: "Vân tay cạnh viền, Mở khóa khuôn mặt",
+            ip_rating: null,
+            weight_g: 199,
+            material: "Khung & Mặt lưng nhựa nhám",
+            loudspeaker_boost: true
+          }
+        },
+        trade_offs: {
+          strengths: [
+            "Pin 6000mAh kèm sạc nhanh 35W rút ngắn thời gian chờ sạc",
+            "Loa kép âm lượng lớn 200% giúp phụ huynh nghe tiếng chuông rõ ràng",
+            "Bộ nhớ trong lớn 256GB thoải mái lưu ảnh và video gia đình"
+          ],
+          weaknesses: [
+            "Thông số độ sáng màn hình đang có sự chênh lệch giữa các đại lý (Chưa xác minh)",
+            "Chip Snapdragon 680 thiên về tiết kiệm pin hơn là chơi game nặng"
+          ]
+        }
+      },
+      {
+        id: "samsung-galaxy-a15-lte",
+        name: "Samsung Galaxy A15 LTE (8GB/128GB)",
+        brand: "Samsung",
+        image_url: createPhoneSvgDataUri("#0284c7", "#0369a1", "Super AMOLED", "5000mAh · RAM 8GB"),
+        source_note: "Nguồn thông số (minh họa): Samsung VN, Nhà bán A & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: {
+          min_price_vnd: 4390000,
+          max_price_vnd: 4790000,
+          primary_seller: "Nhà bán B"
+        },
+        offers: [
+          {
+            seller_name: "Nhà bán B",
+            price_vnd: 4490000,
+            affiliate_url: "https://example.com/nha-ban-b/samsung-galaxy-a15.html",
+            verified_label: "Kiểm tra 2 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Nhà bán A",
+            price_vnd: 4790000,
+            affiliate_url: "https://example.com/nha-ban-a/samsung-galaxy-a15",
+            verified_label: "Kiểm tra 5 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Sàn C",
+            price_vnd: 4390000,
+            affiliate_url: "https://example.com/san-c/samsung-a15-official",
+            verified_label: "Kiểm tra 1 ngày trước",
+            in_stock: true,
+            is_stale: true
+          }
+        ],
+        specs: {
+          performance: {
+            chipset: "MediaTek Helio G99 8 nhân",
+            ram_gb: 8,
+            storage_gb: 128,
+            expandable_storage: "MicroSD tối đa 1 TB"
+          },
+          display: {
+            size_inch: 6.5,
+            panel: "Super AMOLED",
+            resolution: "Full HD+ (1080 x 2340)",
+            refresh_rate_hz: 90,
+            brightness_nits: 800
+          },
+          camera: {
+            rear_main_mp: 50,
+            front_mp: 13,
+            ois: false
+          },
+          battery: {
+            capacity_mah: 5000,
+            charging_w: 25
+          },
+          connectivity: {
+            network: "4G",
+            has_nfc: true,
+            headphone_jack: true
+          },
+          features_build: {
+            biometrics: "Vân tay cạnh viền, Mở khóa khuôn mặt",
+            ip_rating: null,
+            weight_g: 200,
+            material: "Khung & Mặt lưng nhựa",
+            loudspeaker_boost: true
+          }
+        },
+        trade_offs: {
+          strengths: [
+            "Màn hình Super AMOLED Full HD+ cực kỳ sắc nét, nhìn rõ ngoài trời nắng",
+            "Giao diện One UI quen thuộc, dễ sử dụng và hỗ trợ cập nhật phần mềm lâu dài",
+            "Hiệu năng Helio G99 + RAM 8GB mượt mà nhiều năm không giật lag"
+          ],
+          weaknesses: [
+            "Hộp máy tiêu chuẩn không tặng kèm củ sạc nhanh 25W",
+            "Thiết kế màn hình giọt nước viền dưới hơi dày"
+          ]
+        }
+      },
+      {
+        id: "xiaomi-redmi-note-13",
+        name: "Xiaomi Redmi Note 13 (6GB/128GB)",
+        brand: "Xiaomi",
+        image_url: createPhoneSvgDataUri("#4f46e5", "#4338ca", "AMOLED 120Hz", "Camera 108MP · 33W"),
+        source_note: "Nguồn thông số (minh họa): Xiaomi VN, Nhà bán A & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: {
+          min_price_vnd: 4290000,
+          max_price_vnd: 4690000,
+          primary_seller: "Nhà bán B"
+        },
+        offers: [
+          {
+            seller_name: "Nhà bán B",
+            price_vnd: 4390000,
+            affiliate_url: "https://example.com/nha-ban-b/xiaomi-redmi-note-13.html",
+            verified_label: "Kiểm tra 1 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Nhà bán A",
+            price_vnd: 4690000,
+            affiliate_url: "https://example.com/nha-ban-a/xiaomi-redmi-note-13",
+            verified_label: "Kiểm tra 2 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Sàn C",
+            price_vnd: 4290000,
+            affiliate_url: "https://example.com/san-c/redmi-note-13",
+            verified_label: "Kiểm tra 1 ngày trước",
+            in_stock: true,
+            is_stale: true
+          }
+        ],
+        specs: {
+          performance: {
+            chipset: "Snapdragon 685 8 nhân",
+            ram_gb: 6,
+            storage_gb: 128,
+            expandable_storage: "MicroSD tối đa 1 TB"
+          },
+          display: {
+            size_inch: 6.67,
+            panel: "AMOLED",
+            resolution: "Full HD+ (1080 x 2400)",
+            refresh_rate_hz: 120,
+            brightness_nits: 1800
+          },
+          camera: {
+            rear_main_mp: 108,
+            front_mp: 16,
+            ois: false
+          },
+          battery: {
+            capacity_mah: 5000,
+            charging_w: 33
+          },
+          connectivity: {
+            network: "4G",
+            has_nfc: true,
+            headphone_jack: true
+          },
+          features_build: {
+            biometrics: "Vân tay dưới màn hình, Mở khóa khuôn mặt",
+            ip_rating: "IP54",
+            weight_g: 188,
+            material: "Khung & Mặt lưng nhựa phẳng",
+            loudspeaker_boost: true
+          }
+        },
+        trade_offs: {
+          strengths: [
+            "Màn hình AMOLED 6.67 inch 120Hz viền siêu mỏng, độ sáng cao 1800 nits",
+            "Camera chính 108MP chụp ảnh đủ sáng rất chi tiết, có sẵn củ sạc 33W trong hộp",
+            "Trọng lượng nhẹ 188g cầm nắm thoải mái, có kháng bụi nước nhẹ IP54"
+          ],
+          weaknesses: [
+            "Camera chưa hỗ trợ chống rung quang học OIS khi quay video",
+            "Chip Snapdragon 685 chỉ đáp ứng game nhẹ – trung bình"
+          ]
+        }
+      },
+      {
+        id: "tecno-pova-6-neo",
+        name: "Tecno Pova 6 Neo Pin 7000mAh (8GB/128GB)",
+        brand: "Tecno",
+        image_url: createPhoneSvgDataUri("#ea580c", "#c2410c", "Pin 7000mAh", "Helio G99 · 120Hz"),
+        source_note: "Nguồn thông số (minh họa): Nhà bán B & Sàn C",
+        spec_conflicts: {
+          "performance.ram_gb": {
+            status: "Chưa xác minh",
+            reason: "Một số gian hàng ghi 'RAM 16GB' (gộp 8GB vật lý + 8GB RAM ảo). Đã chuẩn hóa về 8GB RAM vật lý."
+          }
+        },
+        price_summary: {
+          min_price_vnd: 4190000,
+          max_price_vnd: 4290000,
+          primary_seller: "Nhà bán B"
+        },
+        offers: [
+          {
+            seller_name: "Nhà bán B",
+            price_vnd: 4290000,
+            affiliate_url: "https://example.com/nha-ban-b/tecno-pova-6-neo.html",
+            verified_label: "Kiểm tra 2 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Sàn C",
+            price_vnd: 4190000,
+            affiliate_url: "https://example.com/san-c/tecno-pova-6-neo",
+            verified_label: "Kiểm tra 4 giờ trước",
+            in_stock: true,
+            is_stale: false
+          }
+        ],
+        specs: {
+          performance: {
+            chipset: "MediaTek Helio G99 Ultimate",
+            ram_gb: 8,
+            storage_gb: 128,
+            expandable_storage: "MicroSD tối đa 1 TB"
+          },
+          display: {
+            size_inch: 6.78,
+            panel: "IPS LCD",
+            resolution: "Full HD+ (1080 x 2460)",
+            refresh_rate_hz: 120,
+            brightness_nits: 580
+          },
+          camera: {
+            rear_main_mp: 50,
+            front_mp: 8,
+            ois: false
+          },
+          battery: {
+            capacity_mah: 7000,
+            charging_w: 33
+          },
+          connectivity: {
+            network: "4G",
+            has_nfc: true,
+            headphone_jack: true
+          },
+          features_build: {
+            biometrics: "Vân tay cạnh viền, Mở khóa khuôn mặt",
+            ip_rating: "IP53",
+            weight_g: 225,
+            material: "Mặt lưng họa tiết Gaming",
+            loudspeaker_boost: true
+          }
+        },
+        trade_offs: {
+          strengths: [
+            "Dung lượng pin khủng 7000mAh dẫn đầu phân khúc kèm sạc 33W",
+            "Chip Helio G99 Ultimate kết hợp màn 120Hz chơi mượt Liên Quân, Free Fire",
+            "Loa kép âm thanh nổi to rõ, có kháng nước nhẹ IP53"
+          ],
+          weaknesses: [
+            "Thân máy khá dày và nặng (225g), mặt lưng hầm hố kén người lớn tuổi",
+            "Độ sáng màn hình ngoài trời ở mức trung bình (580 nits)"
+          ]
+        }
+      },
+      {
+        id: "oppo-a58-6gb",
+        name: "OPPO A58 (6GB/128GB)",
+        brand: "OPPO",
+        image_url: createPhoneSvgDataUri("#0d9488", "#0f766e", "Loa Kép 300%", "6.72\" FHD+ · 33W"),
+        source_note: "Nguồn thông số (minh họa): OPPO VN & Nhà bán A",
+        spec_conflicts: {},
+        price_summary: {
+          min_price_vnd: 4490000,
+          max_price_vnd: 4690000,
+          primary_seller: "Nhà bán B"
+        },
+        offers: [
+          {
+            seller_name: "Nhà bán B",
+            price_vnd: 4490000,
+            affiliate_url: "https://example.com/nha-ban-b/oppo-a58.html",
+            verified_label: "Kiểm tra 3 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Nhà bán A",
+            price_vnd: 4690000,
+            affiliate_url: "https://example.com/nha-ban-a/oppo-a58",
+            verified_label: "Kiểm tra 2 giờ trước",
+            in_stock: true,
+            is_stale: false
+          }
+        ],
+        specs: {
+          performance: {
+            chipset: "MediaTek Helio G85 8 nhân",
+            ram_gb: 6,
+            storage_gb: 128,
+            expandable_storage: "MicroSD tối đa 1 TB"
+          },
+          display: {
+            size_inch: 6.72,
+            panel: "LTPS LCD",
+            resolution: "Full HD+ (1080 x 2400)",
+            refresh_rate_hz: 60,
+            brightness_nits: 680
+          },
+          camera: {
+            rear_main_mp: 50,
+            front_mp: 8,
+            ois: false
+          },
+          battery: {
+            capacity_mah: 5000,
+            charging_w: 33
+          },
+          connectivity: {
+            network: "4G",
+            has_nfc: true,
+            headphone_jack: true
+          },
+          features_build: {
+            biometrics: "Vân tay cạnh viền, Mở khóa khuôn mặt",
+            ip_rating: "IPX4",
+            weight_g: 192,
+            material: "Mặt lưng OPPO Glow chống bám vân tay",
+            loudspeaker_boost: true
+          }
+        },
+        trade_offs: {
+          strengths: [
+            "Loa kép có chế độ Siêu âm lượng 300% nghe gọi cực rõ cho người lớn tuổi",
+            "Màn hình lớn 6.72 inch Full HD+, tặng sẵn củ sạc nhanh SuperVOOC 33W",
+            "Giao diện ColorOS thân thiện, ổn định và dễ làm quen"
+          ],
+          weaknesses: [
+            "Tần số quét màn hình chỉ ở mức 60Hz tiêu chuẩn",
+            "Chip Helio G85 không tối ưu cho người dùng chuyên cày game"
+          ]
+        }
+      },
+      {
+        id: "iphone-11-64gb-legacy",
+        name: "iPhone 11 64GB (Chính hãng VN/A)",
+        brand: "Apple",
+        image_url: createPhoneSvgDataUri("#475569", "#1e293b", "iOS Ổn Định", "Apple A13 · OIS"),
+        source_note: "Nguồn thông số (minh họa): Apple & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: {
+          min_price_vnd: 8490000,
+          max_price_vnd: 8990000,
+          primary_seller: "Nhà bán B"
+        },
+        offers: [
+          {
+            seller_name: "Nhà bán B",
+            price_vnd: 8490000,
+            affiliate_url: "https://example.com/nha-ban-b/iphone-11.html",
+            verified_label: "Kiểm tra 4 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Nhà bán A",
+            price_vnd: 8990000,
+            affiliate_url: "https://example.com/nha-ban-a/iphone-11",
+            verified_label: "Kiểm tra 1 ngày trước",
+            in_stock: true,
+            is_stale: true
+          }
+        ],
+        specs: {
+          performance: {
+            chipset: "Apple A13 Bionic",
+            ram_gb: 4,
+            storage_gb: 64,
+            expandable_storage: "Không hỗ trợ"
+          },
+          display: {
+            size_inch: 6.1,
+            panel: "IPS LCD (Liquid Retina)",
+            resolution: "HD+ (828 x 1792)",
+            refresh_rate_hz: 60,
+            brightness_nits: 625
+          },
+          camera: {
+            rear_main_mp: 12,
+            front_mp: 12,
+            ois: true
+          },
+          battery: {
+            capacity_mah: 3110,
+            charging_w: 18
+          },
+          connectivity: {
+            network: "4G",
+            has_nfc: true,
+            headphone_jack: false
+          },
+          features_build: {
+            biometrics: "Nhận diện khuôn mặt Face ID",
+            ip_rating: "IP68",
+            weight_g: 194,
+            material: "Khung nhôm & Mặt lưng kính",
+            loudspeaker_boost: false
+          }
+        },
+        trade_offs: {
+          strengths: [
+            "Mẫu iPhone chính hãng mới có mức giá dễ tiếp cận nhất hiện nay",
+            "Quay video chống rung OIS mượt mà, Face ID nhạy, kháng nước IP68"
+          ],
+          weaknesses: [
+            "Giá từ 8,49 triệu (vượt ngân sách 5–7 triệu)",
+            "Pin 3110mAh và màn hình 6.1 inch khá nhỏ so với các máy Android cùng tầm"
+          ]
+        }
+      },
+      {
+        id: "iphone-15-pro-max-256gb",
+        name: "iPhone 15 Pro Max 256GB (Chính hãng VN/A)",
+        brand: "Apple",
+        image_url: createPhoneSvgDataUri("#334155", "#0f172a", "Titanium · A17 Pro", "6.7\" 120Hz · Zoom 5x"),
+        source_note: "Nguồn thông số (minh họa): Apple VN, Nhà bán A & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: {
+          min_price_vnd: 28490000,
+          max_price_vnd: 29590000,
+          primary_seller: "Nhà bán B"
+        },
+        offers: [
+          {
+            seller_name: "Nhà bán B",
+            price_vnd: 28490000,
+            affiliate_url: "https://example.com/nha-ban-b/iphone-15-pro-max.html",
+            verified_label: "Kiểm tra 2 giờ trước",
+            in_stock: true,
+            is_stale: false
+          },
+          {
+            seller_name: "Nhà bán A",
+            price_vnd: 29590000,
+            affiliate_url: "https://example.com/nha-ban-a/iphone-15-pro-max",
+            verified_label: "Kiểm tra 3 giờ trước",
+            in_stock: true,
+            is_stale: false
+          }
+        ],
+        specs: {
+          performance: {
+            chipset: "Apple A17 Pro 6 nhân",
+            ram_gb: 8,
+            storage_gb: 256,
+            expandable_storage: "Không hỗ trợ"
+          },
+          display: {
+            size_inch: 6.7,
+            panel: "Super Retina XDR OLED",
+            resolution: "2796 x 1290 Pixels",
+            refresh_rate_hz: 120,
+            brightness_nits: 2000
+          },
+          camera: {
+            rear_main_mp: 48,
+            front_mp: 12,
+            ois: true
+          },
+          battery: {
+            capacity_mah: 4422,
+            charging_w: 20
+          },
+          connectivity: {
+            network: "5G",
+            has_nfc: true,
+            headphone_jack: false
+          },
+          features_build: {
+            biometrics: "Nhận diện khuôn mặt Face ID",
+            ip_rating: "IP68",
+            weight_g: 221,
+            material: "Khung Titan & Mặt lưng kính nhám",
+            loudspeaker_boost: true
+          }
+        },
+        trade_offs: {
+          strengths: [
+            "Flagship cao cấp nhất với khung Titan, chip A17 Pro và Camera Zoom quang 5x",
+            "Màn hình OLED 6.7 inch 120Hz sáng 2000 nits đỉnh cao"
+          ],
+          weaknesses: [
+            "Mức giá chính hãng từ 28,49 triệu VNĐ"
+          ]
+        }
+      },
+      {
+        id: "samsung-galaxy-a05s",
+        name: "Samsung Galaxy A05s (4GB/128GB)",
+        brand: "Samsung",
+        image_url: createPhoneSvgDataUri("#1e40af", "#1e3a8a", "FHD+ 90Hz", "5000mAh · 25W"),
+        source_note: "Nguồn thông số (minh họa): Samsung VN & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: { min_price_vnd: 3190000, max_price_vnd: 3290000, primary_seller: "Sàn C" },
+        offers: [
+          { seller_name: "Nhà bán B", price_vnd: 3290000, affiliate_url: "https://example.com/nha-ban-b/samsung-galaxy-a05s", verified_label: "Kiểm tra 3 giờ trước", in_stock: true, is_stale: false },
+          { seller_name: "Sàn C", price_vnd: 3190000, affiliate_url: "https://example.com/san-c/samsung-galaxy-a05s", verified_label: "Kiểm tra 5 giờ trước", in_stock: true, is_stale: false }
+        ],
+        specs: {
+          performance: { chipset: "Snapdragon 680 8 nhân", ram_gb: 4, storage_gb: 128, expandable_storage: "MicroSD tối đa 1 TB" },
+          display: { size_inch: 6.7, panel: "PLS LCD", resolution: "Full HD+ (1080 x 2400)", refresh_rate_hz: 90, brightness_nits: 500 },
+          camera: { rear_main_mp: 50, front_mp: 13, ois: false },
+          battery: { capacity_mah: 5000, charging_w: 25 },
+          connectivity: { network: "4G", has_nfc: false, headphone_jack: true },
+          features_build: { biometrics: "Vân tay cạnh viền, Mở khóa khuôn mặt", ip_rating: null, weight_g: 194, material: "Khung & Mặt lưng nhựa", loudspeaker_boost: false }
+        },
+        trade_offs: {
+          strengths: [
+            "Màn 6.7 inch Full HD+ lớn và rõ trong tầm giá hơn 3 triệu",
+            "Pin 5000mAh, hỗ trợ sạc nhanh 25W",
+            "Giao diện One UI quen thuộc, dễ dùng"
+          ],
+          weaknesses: [
+            "Không có NFC",
+            "RAM 4GB chỉ hợp tác vụ cơ bản"
+          ]
+        }
+      },
+      {
+        id: "xiaomi-redmi-13c",
+        name: "Xiaomi Redmi 13C (4GB/128GB)",
+        brand: "Xiaomi",
+        image_url: createPhoneSvgDataUri("#7c3aed", "#6d28d9", "Dưới 3 triệu", "6.74\" 90Hz · 5000mAh"),
+        source_note: "Nguồn thông số (minh họa): Xiaomi VN & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: { min_price_vnd: 2790000, max_price_vnd: 2990000, primary_seller: "Sàn C" },
+        offers: [
+          { seller_name: "Nhà bán B", price_vnd: 2990000, affiliate_url: "https://example.com/nha-ban-b/xiaomi-redmi-13c", verified_label: "Kiểm tra 2 giờ trước", in_stock: true, is_stale: false },
+          { seller_name: "Sàn C", price_vnd: 2790000, affiliate_url: "https://example.com/san-c/xiaomi-redmi-13c", verified_label: "Kiểm tra 1 ngày trước", in_stock: true, is_stale: true }
+        ],
+        specs: {
+          performance: { chipset: "MediaTek Helio G85 8 nhân", ram_gb: 4, storage_gb: 128, expandable_storage: "MicroSD tối đa 1 TB" },
+          display: { size_inch: 6.74, panel: "IPS LCD", resolution: "HD+ (720 x 1600)", refresh_rate_hz: 90, brightness_nits: 600 },
+          camera: { rear_main_mp: 50, front_mp: 8, ois: false },
+          battery: { capacity_mah: 5000, charging_w: 18 },
+          connectivity: { network: "4G", has_nfc: true, headphone_jack: true },
+          features_build: { biometrics: "Vân tay cạnh viền, Mở khóa khuôn mặt", ip_rating: null, weight_g: 192, material: "Khung & Mặt lưng nhựa", loudspeaker_boost: false }
+        },
+        trade_offs: {
+          strengths: [
+            "Giá dưới 3 triệu, bộ nhớ trong 128GB",
+            "Màn 6.74 inch 90Hz lớn, pin 5000mAh"
+          ],
+          weaknesses: [
+            "Màn chỉ HD+, sạc 18W khá chậm",
+            "Chip Helio G85 chỉ hợp tác vụ nhẹ"
+          ]
+        }
+      },
+      {
+        id: "realme-c65",
+        name: "realme C65 (6GB/128GB)",
+        brand: "realme",
+        image_url: createPhoneSvgDataUri("#ca8a04", "#a16207", "Sạc 45W", "IP54 · 5000mAh"),
+        source_note: "Nguồn thông số (minh họa): realme VN & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: { min_price_vnd: 3990000, max_price_vnd: 4190000, primary_seller: "Nhà bán B" },
+        offers: [
+          { seller_name: "Nhà bán B", price_vnd: 3990000, affiliate_url: "https://example.com/nha-ban-b/realme-c65", verified_label: "Kiểm tra 2 giờ trước", in_stock: true, is_stale: false },
+          { seller_name: "Nhà bán A", price_vnd: 4190000, affiliate_url: "https://example.com/nha-ban-a/realme-c65", verified_label: "Kiểm tra 4 giờ trước", in_stock: false, is_stale: false }
+        ],
+        specs: {
+          performance: { chipset: "MediaTek Helio G85 8 nhân", ram_gb: 6, storage_gb: 128, expandable_storage: "MicroSD tối đa 2 TB" },
+          display: { size_inch: 6.67, panel: "IPS LCD", resolution: "HD+ (720 x 1604)", refresh_rate_hz: 90, brightness_nits: 625 },
+          camera: { rear_main_mp: 50, front_mp: 8, ois: false },
+          battery: { capacity_mah: 5000, charging_w: 45 },
+          connectivity: { network: "4G", has_nfc: true, headphone_jack: true },
+          features_build: { biometrics: "Vân tay cạnh viền, Mở khóa khuôn mặt", ip_rating: "IP54", weight_g: 185, material: "Khung & Mặt lưng nhựa", loudspeaker_boost: false }
+        },
+        trade_offs: {
+          strengths: [
+            "Sạc nhanh 45W, hiếm ở tầm giá 4 triệu",
+            "Kháng bụi nước IP54, máy nhẹ 185g, có NFC"
+          ],
+          weaknesses: [
+            "Màn hình chỉ HD+",
+            "Chip Helio G85 không hợp game nặng"
+          ]
+        }
+      },
+      {
+        id: "samsung-galaxy-a25-5g",
+        name: "Samsung Galaxy A25 5G (8GB/128GB)",
+        brand: "Samsung",
+        image_url: createPhoneSvgDataUri("#0891b2", "#0e7490", "AMOLED 120Hz", "5G · Camera OIS"),
+        source_note: "Nguồn thông số (minh họa): Samsung VN, Nhà bán A & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: { min_price_vnd: 5990000, max_price_vnd: 6290000, primary_seller: "Nhà bán B" },
+        offers: [
+          { seller_name: "Nhà bán B", price_vnd: 5990000, affiliate_url: "https://example.com/nha-ban-b/samsung-galaxy-a25", verified_label: "Kiểm tra 1 giờ trước", in_stock: true, is_stale: false },
+          { seller_name: "Nhà bán A", price_vnd: 6290000, affiliate_url: "https://example.com/nha-ban-a/samsung-galaxy-a25", verified_label: "Kiểm tra 3 giờ trước", in_stock: true, is_stale: false }
+        ],
+        specs: {
+          performance: { chipset: "Exynos 1280 8 nhân", ram_gb: 8, storage_gb: 128, expandable_storage: "MicroSD tối đa 1 TB" },
+          display: { size_inch: 6.5, panel: "Super AMOLED", resolution: "Full HD+ (1080 x 2340)", refresh_rate_hz: 120, brightness_nits: 1000 },
+          camera: { rear_main_mp: 50, front_mp: 13, ois: true },
+          battery: { capacity_mah: 5000, charging_w: 25 },
+          connectivity: { network: "5G", has_nfc: true, headphone_jack: false },
+          features_build: { biometrics: "Vân tay cạnh viền, Mở khóa khuôn mặt", ip_rating: null, weight_g: 197, material: "Khung & Mặt lưng nhựa", loudspeaker_boost: true }
+        },
+        trade_offs: {
+          strengths: [
+            "Màn Super AMOLED 120Hz sắc nét",
+            "Camera 50MP có chống rung OIS",
+            "Hỗ trợ 5G, cập nhật phần mềm dài hạn"
+          ],
+          weaknesses: [
+            "Không có cổng tai nghe 3.5mm",
+            "Sạc 25W khá chậm"
+          ]
+        }
+      },
+      {
+        id: "xiaomi-redmi-note-13-pro",
+        name: "Xiaomi Redmi Note 13 Pro (8GB/256GB)",
+        brand: "Xiaomi",
+        image_url: createPhoneSvgDataUri("#9333ea", "#7e22ce", "Camera 200MP", "AMOLED 1.5K · 67W"),
+        source_note: "Nguồn thông số (minh họa): Xiaomi VN & Nhà bán A",
+        spec_conflicts: {},
+        price_summary: { min_price_vnd: 6690000, max_price_vnd: 6990000, primary_seller: "Sàn C" },
+        offers: [
+          { seller_name: "Nhà bán A", price_vnd: 6990000, affiliate_url: "https://example.com/nha-ban-a/xiaomi-redmi-note-13-pro", verified_label: "Kiểm tra 2 giờ trước", in_stock: true, is_stale: false },
+          { seller_name: "Sàn C", price_vnd: 6690000, affiliate_url: "https://example.com/san-c/xiaomi-redmi-note-13-pro", verified_label: "Kiểm tra 1 ngày trước", in_stock: true, is_stale: true }
+        ],
+        specs: {
+          performance: { chipset: "MediaTek Helio G99 Ultra", ram_gb: 8, storage_gb: 256, expandable_storage: "Không hỗ trợ" },
+          display: { size_inch: 6.67, panel: "AMOLED", resolution: "1.5K (2712 x 1220)", refresh_rate_hz: 120, brightness_nits: 1800 },
+          camera: { rear_main_mp: 200, front_mp: 16, ois: true },
+          battery: { capacity_mah: 5000, charging_w: 67 },
+          connectivity: { network: "4G", has_nfc: true, headphone_jack: true },
+          features_build: { biometrics: "Vân tay dưới màn hình, Mở khóa khuôn mặt", ip_rating: "IP54", weight_g: 188, material: "Khung nhựa & Mặt lưng kính", loudspeaker_boost: true }
+        },
+        trade_offs: {
+          strengths: [
+            "Camera 200MP có chống rung OIS",
+            "Màn AMOLED 1.5K 120Hz, sáng tới 1800 nits",
+            "Sạc nhanh 67W"
+          ],
+          weaknesses: [
+            "Không có khe thẻ nhớ",
+            "Chip Helio G99 Ultra ở mức trung bình"
+          ]
+        }
+      },
+      {
+        id: "samsung-galaxy-a35-5g",
+        name: "Samsung Galaxy A35 5G (8GB/128GB)",
+        brand: "Samsung",
+        image_url: createPhoneSvgDataUri("#2563eb", "#1e3a8a", "IP67 · AMOLED", "5G · Camera OIS"),
+        source_note: "Nguồn thông số (minh họa): Samsung VN & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: { min_price_vnd: 7690000, max_price_vnd: 7990000, primary_seller: "Nhà bán B" },
+        offers: [
+          { seller_name: "Nhà bán B", price_vnd: 7690000, affiliate_url: "https://example.com/nha-ban-b/samsung-galaxy-a35", verified_label: "Kiểm tra 3 giờ trước", in_stock: true, is_stale: false },
+          { seller_name: "Nhà bán A", price_vnd: 7990000, affiliate_url: "https://example.com/nha-ban-a/samsung-galaxy-a35", verified_label: "Kiểm tra 2 giờ trước", in_stock: true, is_stale: false }
+        ],
+        specs: {
+          performance: { chipset: "Exynos 1380 8 nhân", ram_gb: 8, storage_gb: 128, expandable_storage: "MicroSD tối đa 1 TB" },
+          display: { size_inch: 6.6, panel: "Super AMOLED", resolution: "Full HD+ (1080 x 2340)", refresh_rate_hz: 120, brightness_nits: 1000 },
+          camera: { rear_main_mp: 50, front_mp: 13, ois: true },
+          battery: { capacity_mah: 5000, charging_w: 25 },
+          connectivity: { network: "5G", has_nfc: true, headphone_jack: false },
+          features_build: { biometrics: "Vân tay dưới màn hình, Mở khóa khuôn mặt", ip_rating: "IP67", weight_g: 209, material: "Khung nhựa & Mặt lưng kính", loudspeaker_boost: true }
+        },
+        trade_offs: {
+          strengths: [
+            "Kháng nước IP67",
+            "Màn Super AMOLED 120Hz, camera có OIS, hỗ trợ 5G"
+          ],
+          weaknesses: [
+            "Giá gần 8 triệu",
+            "Khá nặng (209g), không có cổng tai nghe 3.5mm"
+          ]
+        }
+      },
+      {
+        id: "iphone-13-128gb",
+        name: "iPhone 13 128GB (Chính hãng VN/A)",
+        brand: "Apple",
+        image_url: createPhoneSvgDataUri("#64748b", "#334155", "iOS · A15", "OLED · IP68"),
+        source_note: "Nguồn thông số (minh họa): Apple & Nhà bán B",
+        spec_conflicts: {},
+        price_summary: { min_price_vnd: 12990000, max_price_vnd: 13490000, primary_seller: "Nhà bán B" },
+        offers: [
+          { seller_name: "Nhà bán B", price_vnd: 12990000, affiliate_url: "https://example.com/nha-ban-b/iphone-13", verified_label: "Kiểm tra 2 giờ trước", in_stock: true, is_stale: false },
+          { seller_name: "Nhà bán A", price_vnd: 13490000, affiliate_url: "https://example.com/nha-ban-a/iphone-13", verified_label: "Kiểm tra 4 giờ trước", in_stock: true, is_stale: false }
+        ],
+        specs: {
+          performance: { chipset: "Apple A15 Bionic", ram_gb: 4, storage_gb: 128, expandable_storage: "Không hỗ trợ" },
+          display: { size_inch: 6.1, panel: "Super Retina XDR OLED", resolution: "2532 x 1170 Pixels", refresh_rate_hz: 60, brightness_nits: 800 },
+          camera: { rear_main_mp: 12, front_mp: 12, ois: true },
+          battery: { capacity_mah: 3240, charging_w: 20 },
+          connectivity: { network: "5G", has_nfc: true, headphone_jack: false },
+          features_build: { biometrics: "Nhận diện khuôn mặt Face ID", ip_rating: "IP68", weight_g: 173, material: "Khung nhôm & Mặt lưng kính", loudspeaker_boost: false }
+        },
+        trade_offs: {
+          strengths: [
+            "Chip A15 mạnh, iOS được cập nhật lâu",
+            "Camera có OIS, kháng nước IP68, máy nhẹ 173g"
+          ],
+          weaknesses: [
+            "Màn 60Hz",
+            "Pin 3240mAh nhỏ"
+          ]
+        }
+      }
+    ];
+
+    // Words that name a specific model in a query (lower case)
+    const MODEL_TERMS = {
+      "iphone-15-pro-max-256gb": ["iphone 15"],
+      "iphone-13-128gb": ["iphone 13"],
+      "iphone-11-64gb-legacy": ["iphone 11"],
+      "xiaomi-redmi-note-13-pro": ["note 13 pro"],
+      "xiaomi-redmi-note-13": ["note 13"],
+      "xiaomi-redmi-13c": ["redmi 13c", "13c"],
+      "xiaomi-entry-2026": ["xiaomi entry"],
+      "samsung-galaxy-a05s": ["a05s"],
+      "samsung-galaxy-a15-lte": ["a15"],
+      "samsung-galaxy-a25-5g": ["a25"],
+      "samsung-galaxy-a35-5g": ["a35"],
+      "honor-x7b-6000mah": ["x7b"],
+      "tecno-pova-6-neo": ["pova"],
+      "oppo-a58-6gb": ["a58"],
+      "realme-c65": ["c65"]
+    };
+
+    // Demo sponsored placements: shown apart from the shortlist, never used in ranking
+    const SPONSORED_DEMO = [
+      { product_id: "realme-c65", sponsor: "Nhà bán B" },
+      { product_id: "samsung-galaxy-a05s", sponsor: "Sàn C" },
+      { product_id: "xiaomi-redmi-13c", sponsor: "Nhà bán B" }
+    ];
+
+    // ============================================================================
+    // 2. APP STATE
+    // ============================================================================
+    const appState = {
+      view: "results", // "idle" | "clarification" | "zero_match" | "results" | "comparing"
+      onlyDiffInCompare: false,
+      conversationHistory: {
+        previous_query: null,
+        previous_shortlist_ids: []
+      },
+      lastQuery: "",
+      parsedContext: null,
+      currentShortlist: [],
+      zeroMatchInfo: null
+    };
+
+    function formatVnd(amount) {
+      if (amount == null || amount >= 999000000) return "Không giới hạn";
+      return amount.toLocaleString("vi-VN") + "₫";
+    }
+
+    // ============================================================================
+    // 3. NATURAL LANGUAGE PARSER & RANKING ENGINE
+    // ============================================================================
+    const NO_LIMIT = 999000000;
+
+    function shortName(p) {
+      return p.name.split(" (")[0];
+    }
+
+    function parseUserQuery(rawQuery, options = {}) {
+      const qLower = rawQuery.trim().toLowerCase();
+      const hasHistory = Boolean(appState.conversationHistory.previous_query && !options.forceStartFresh);
+
+      const discourseKeywords = [
+        "con nào", "pin trâu hơn", "thay hãng", "ngoài xiaomi", "đổi sang",
+        "hạ ngân sách", "rẻ hơn", "màn amoled", "trong mấy máy", "còn mẫu nào", "chỉ xem"
+      ];
+      const isRefinement = hasHistory && (options.isRefinement || discourseKeywords.some(k => qLower.includes(k)));
+
+      // Extract budget ("7 củ", "5 triệu", "6tr"). No budget in the query means no price limit.
+      let maxPrice = NO_LIMIT;
+      let budgetGiven = false;
+      const priceMatch = qLower.match(/(\d+(?:[.,]\d+)?)\s*(củ|cu|triệu|tr)(?!\p{L})/u);
+      if (priceMatch) {
+        maxPrice = Math.round(parseFloat(priceMatch[1].replace(",", ".")) * 1000000);
+        budgetGiven = true;
+      } else if (isRefinement && appState.parsedContext) {
+        maxPrice = appState.parsedContext.maxPrice;
+        budgetGiven = appState.parsedContext.budgetGiven;
+      }
+
+      // Brand filters
+      let brandInclusions = [];
+      let brandExclusions = [];
+      if (qLower.includes("ngoài xiaomi") || qLower.includes("trừ xiaomi") || qLower.includes("khác ngoài xiaomi")) {
+        brandExclusions.push("Xiaomi");
+      } else if (qLower.includes("xiaomi") || qLower.includes("redmi")) {
+        brandInclusions.push("Xiaomi");
+      }
+      if (qLower.includes("samsung")) brandInclusions.push("Samsung");
+      if (qLower.includes("oppo")) brandInclusions.push("OPPO");
+      if (qLower.includes("iphone") || qLower.includes("apple")) brandInclusions.push("Apple");
+      if (qLower.includes("honor")) brandInclusions.push("Honor");
+      if (qLower.includes("tecno")) brandInclusions.push("Tecno");
+      if (qLower.includes("realme")) brandInclusions.push("realme");
+
+      // A specific model named in the query, e.g. "iPhone 15 Pro Max", "Redmi Note 13"
+      const modelHits = [];
+      Object.entries(MODEL_TERMS).forEach(([id, terms]) => {
+        const term = terms.find(t => qLower.includes(t));
+        if (term) modelHits.push({ id, term });
+      });
+      // Drop a hit that is part of a longer one ("note 13" inside "note 13 pro")
+      const modelIds = modelHits
+        .filter(h => !modelHits.some(o => o !== h && o.term.length > h.term.length && o.term.includes(h.term)))
+        .map(h => h.id);
+
+      const hasSpecificCriteria =
+        qLower.includes("mẹ") || qLower.includes("bố") || qLower.includes("ông bà") || qLower.includes("ở quê") ||
+        qLower.includes("người già") || qLower.includes("phụ huynh") ||
+        qLower.includes("pin") || qLower.includes("màn") || qLower.includes("game") || qLower.includes("chụp") ||
+        qLower.includes("camera") || qLower.includes("loa") || qLower.includes("amoled") || qLower.includes("120hz") ||
+        brandInclusions.length > 0 || brandExclusions.length > 0 || modelIds.length > 0 || Boolean(options.clarificationBoost);
+
+      const isAmbiguous = !hasSpecificCriteria;
+
+      let summaryTags = [];
+      let weights = {
+        display: { min_size_inch: 6.5, weight: 0.60 },
+        battery: { min_capacity_mah: 5000, weight: 0.65 },
+        performance: { min_ram_gb: 4, weight: 0.50 },
+        camera: { weight: 0.45 },
+        features_build: { loudspeaker_boost: false, weight: 0.40 },
+        requireAmoled: false
+      };
+
+      const prevQ = (appState.conversationHistory.previous_query || "").toLowerCase();
+      if (qLower.includes("mẹ") || qLower.includes("bố") || qLower.includes("ở quê") || qLower.includes("người già") || qLower.includes("phụ huynh") || (isRefinement && prevQ.includes("mẹ"))) {
+        summaryTags.push("👤 Người dùng: Phụ huynh / Người lớn tuổi");
+        summaryTags.push("📱 Màn hình lớn dễ đọc chữ (≥ 6.5 inch)");
+        summaryTags.push("🔋 Pin chờ lâu (≥ 5000mAh) & Loa ngoài to rõ");
+        weights = {
+          display: { min_size_inch: 6.5, weight: 0.90 },
+          battery: { min_capacity_mah: 5000, weight: 0.95 },
+          performance: { min_ram_gb: 4, weight: 0.40 },
+          camera: { weight: 0.30 },
+          features_build: { loudspeaker_boost: true, weight: 0.75 },
+          requireAmoled: false
+        };
+      }
+
+      if (qLower.includes("6000") || qLower.includes("pin trâu hơn")) {
+        weights.battery.min_capacity_mah = 6000;
+        weights.battery.weight = 0.99;
+        summaryTags.push("⚡ Lọc nâng cao: Pin từ 6000mAh trở lên");
+      }
+      if (qLower.includes("amoled")) {
+        weights.display.weight = 0.95;
+        weights.requireAmoled = true;
+        summaryTags.push("✨ Tấm nền: Ưu tiên AMOLED / Super AMOLED");
+      }
+      if (qLower.includes("game") || qLower.includes("120hz") || options.clarificationBoost === "performance") {
+        weights.performance = { min_ram_gb: 6, weight: 0.95 };
+        weights.display = { min_size_inch: 6.5, weight: 0.85 };
+        summaryTags.push("🎮 Nhu cầu: Chơi game mượt, màn hình 120Hz, chip khỏe");
+      }
+      if (qLower.includes("chụp") || qLower.includes("camera") || options.clarificationBoost === "camera") {
+        weights.camera = { weight: 0.95 };
+        weights.display = { min_size_inch: 6.5, weight: 0.85 };
+        summaryTags.push("📸 Nhu cầu: Chụp ảnh sắc nét & màn hình đẹp");
+      }
+      if (options.clarificationBoost === "battery") {
+        weights.battery = { min_capacity_mah: 6000, weight: 0.98 };
+        summaryTags.push("🔋 Nhu cầu: Pin trâu dùng thoải mái cả ngày");
+      }
+
+      if (brandExclusions.length > 0) {
+        summaryTags.push(`🚫 Loại trừ hãng: ${brandExclusions.join(", ")}`);
+      }
+      if (brandInclusions.length > 0) {
+        summaryTags.push(`🏷️ Hãng yêu cầu: ${brandInclusions.join(", ")}`);
+      }
+      if (modelIds.length > 0) {
+        summaryTags.push(`📱 Mẫu cụ thể: ${PRODUCT_CATALOG.filter(p => modelIds.includes(p.id)).map(shortName).join(", ")}`);
+      }
+
+      return {
+        isRefinement,
+        isAmbiguous,
+        maxPrice,
+        budgetGiven,
+        brandInclusions,
+        brandExclusions,
+        modelIds,
+        summaryTags,
+        weights,
+        fallbackQuestion: budgetGiven
+          ? `Trong tầm giá ${(maxPrice / 1000000).toLocaleString("vi-VN")} triệu, bạn ưu tiên tiêu chí nào nhất?`
+          : "Bạn ưu tiên tiêu chí nào nhất khi chọn máy?"
+      };
+    }
+
+    function filterCandidates(parsed, opts = {}) {
+      return PRODUCT_CATALOG.filter(p => {
+        if (!opts.ignorePrice && p.price_summary.min_price_vnd > parsed.maxPrice) return false;
+        if (!opts.ignoreBrand && parsed.brandInclusions.length > 0 && !parsed.brandInclusions.includes(p.brand)) return false;
+        if (parsed.brandExclusions.length > 0 && parsed.brandExclusions.includes(p.brand)) return false;
+        if (!opts.ignoreModel && parsed.modelIds.length > 0 && !parsed.modelIds.includes(p.id)) return false;
+        if (!opts.ignoreSpecs) {
+          if (parsed.weights.battery.min_capacity_mah >= 6000 && p.specs.battery.capacity_mah < 6000) return false;
+          if (parsed.weights.requireAmoled && !p.specs.display.panel.toUpperCase().includes("AMOLED")) return false;
+        }
+        return true;
+      });
+    }
+
+    // Strict filters first; if the 6000mAh / AMOLED preference empties the list, relax only those two.
+    function filterWithSpecFallback(parsed, opts = {}) {
+      const strict = filterCandidates(parsed, opts);
+      if (strict.length > 0) return { list: strict, relaxedSpecs: false };
+      return { list: filterCandidates(parsed, { ...opts, ignoreSpecs: true }), relaxedSpecs: true };
+    }
+
+    function filterAndRankProducts(parsed) {
+      const { list, relaxedSpecs } = filterWithSpecFallback(parsed);
+      const specFilterActive = parsed.weights.battery.min_capacity_mah >= 6000 || parsed.weights.requireAmoled;
+      parsed.relaxedSpecs = relaxedSpecs && specFilterActive && list.length > 0;
+      return scoreProducts(list, parsed.weights).slice(0, 5);
+    }
+
+    function scoreProducts(candidates, weights) {
+      const w = weights;
+      const scored = candidates.map(p => {
+        let totalW = 0;
+        let score = 0;
+
+        // Display
+        totalW += w.display.weight;
+        let dScore = p.specs.display.size_inch >= (w.display.min_size_inch || 6.5) ? 0.92 : 0.68;
+        if (p.specs.display.panel.includes("AMOLED")) dScore = Math.min(1.0, dScore + 0.08);
+        if (!p.spec_conflicts["display.brightness_nits"] && p.specs.display.brightness_nits >= 800) {
+          dScore = Math.min(1.0, dScore + 0.03);
+        }
+        score += dScore * w.display.weight;
+
+        // Battery
+        totalW += w.battery.weight;
+        let bScore = p.specs.battery.capacity_mah >= (w.battery.min_capacity_mah || 5000) ? 0.94 : 0.72;
+        if (p.specs.battery.capacity_mah >= 6000) bScore = 1.0;
+        score += bScore * w.battery.weight;
+
+        // Performance (skip conflicting RAM from weight bonus)
+        if (!p.spec_conflicts["performance.ram_gb"]) {
+          totalW += w.performance.weight;
+          const rScore = p.specs.performance.ram_gb >= 8 ? 0.95 : (p.specs.performance.ram_gb >= 6 ? 0.85 : 0.70);
+          score += rScore * w.performance.weight;
+        }
+
+        // Camera
+        totalW += w.camera.weight;
+        const cScore = p.specs.camera.rear_main_mp >= 100 ? 0.96 : (p.specs.camera.rear_main_mp >= 50 ? 0.86 : 0.68);
+        score += cScore * w.camera.weight;
+
+        // Features
+        totalW += w.features_build.weight;
+        const fScore = p.specs.features_build.loudspeaker_boost ? 0.95 : 0.68;
+        score += fScore * w.features_build.weight;
+
+        // Internal score, used only for ordering; not shown as a percentage.
+        const matchPct = Math.round((score / (totalW || 1)) * 100);
+        return { product: p, matchPct };
+      });
+
+      scored.sort((a, b) => b.matchPct - a.matchPct);
+      return scored;
+    }
+
+    // No device passes the hard filters: work out the two pivots (keep budget / keep brand or model).
+    function buildZeroMatchInfo(parsed, query) {
+      const byPrice = (a, b) => a.product.price_summary.min_price_vnd - b.product.price_summary.min_price_vnd;
+      const wanted = scoreProducts(filterWithSpecFallback(parsed, { ignorePrice: true }).list, parsed.weights).sort(byPrice);
+      const pivotA = parsed.budgetGiven
+        ? scoreProducts(filterWithSpecFallback(parsed, { ignoreBrand: true, ignoreModel: true }).list, parsed.weights).slice(0, 3)
+        : [];
+      let keepBrands = parsed.brandInclusions.slice();
+      if (keepBrands.length === 0 && parsed.modelIds.length > 0) {
+        keepBrands = [...new Set(PRODUCT_CATALOG.filter(p => parsed.modelIds.includes(p.id)).map(p => p.brand))];
+      }
+      const pivotB = scoreProducts(
+        filterWithSpecFallback({ ...parsed, brandInclusions: keepBrands }, { ignorePrice: true, ignoreModel: true }).list,
+        parsed.weights
+      ).sort(byPrice).slice(0, 3);
+
+      let wantedLabel = "máy phù hợp";
+      if (parsed.modelIds.length > 0) {
+        wantedLabel = PRODUCT_CATALOG.filter(p => parsed.modelIds.includes(p.id)).map(shortName).join(" / ");
+      } else if (parsed.brandInclusions.length > 0) {
+        wantedLabel = "máy " + parsed.brandInclusions.join(" / ");
+      }
+      return {
+        query,
+        budgetMax: parsed.maxPrice,
+        budgetGiven: parsed.budgetGiven,
+        wantedLabel,
+        keepLabel: keepBrands.length > 0 ? "thương hiệu " + keepBrands.join(" / ") : "các tiêu chí khác",
+        cheapestWanted: wanted.length > 0 ? wanted[0].product : null,
+        pivotA,
+        pivotB
+      };
+    }
+
+    function showPivot(which) {
+      const info = appState.zeroMatchInfo;
+      const prev = appState.parsedContext;
+      if (!info || !prev) return;
+      const list = which === "A" ? info.pivotA : info.pivotB;
+      if (!list || list.length === 0) return;
+      const withoutModel = prev.summaryTags.filter(t => !t.startsWith("📱 Mẫu"));
+      appState.parsedContext = {
+        ...prev,
+        modelIds: [],
+        summaryTags: which === "A"
+          ? [...withoutModel.filter(t => !t.startsWith("🏷️")), "↪ Giữ ngân sách, bỏ yêu cầu hãng/mẫu"]
+          : [...withoutModel, `↪ Giữ ${info.keepLabel}, nới ngân sách (sắp theo giá)`],
+        budgetNote: which === "A" ? null : "đã nới"
+      };
+      appState.view = "results";
+      appState.currentShortlist = list;
+      appState.conversationHistory = { previous_query: info.query, previous_shortlist_ids: list.map(s => s.product.id) };
+      renderApp();
+    }
+
+    function runSearch(rawQuery, options = {}) {
+      const trimmed = rawQuery.trim();
+      if (!trimmed) return;
+
+      document.getElementById("queryInput").value = trimmed;
+      appState.lastQuery = trimmed;
+
+      const parsed = parseUserQuery(trimmed, options);
+      appState.parsedContext = parsed;
+
+      if (parsed.isAmbiguous) {
+        appState.view = "clarification";
+        appState.currentShortlist = [];
+        renderApp();
+        return;
+      }
+
+      const shortlist = filterAndRankProducts(parsed);
+      if (parsed.relaxedSpecs) {
+        parsed.summaryTags.push("⚠️ Không máy nào đạt đủ tiêu chí pin/màn trong tầm giá, đã nới tiêu chí này");
+      }
+      if (shortlist.length === 0) {
+        appState.view = "zero_match";
+        appState.currentShortlist = [];
+        appState.zeroMatchInfo = buildZeroMatchInfo(parsed, trimmed);
+        renderApp();
+        return;
+      }
+
+      appState.view = "results";
+      appState.currentShortlist = shortlist;
+      appState.conversationHistory = {
+        previous_query: trimmed,
+        previous_shortlist_ids: shortlist.map(s => s.product.id)
+      };
+
+      renderApp();
+    }
+
+    // ============================================================================
+    // 4. RENDERING UI
+    // ============================================================================
+    function renderApp() {
+      // Header compare button
+      const compareBtn = document.getElementById("btnHeaderCompare");
+      const compareCount = document.getElementById("headerCompareCount");
+      if (appState.currentShortlist.length >= 2) {
+        compareBtn.classList.remove("hidden");
+        compareBtn.classList.add("inline-flex");
+        compareCount.textContent = appState.currentShortlist.length;
+      } else {
+        compareBtn.classList.add("hidden");
+        compareBtn.classList.remove("inline-flex");
+      }
+
+      // Discourse Memory Banner
+      const memBanner = document.getElementById("discourseMemoryBanner");
+      if (appState.conversationHistory.previous_query && appState.view !== "idle") {
+        memBanner.classList.remove("hidden");
+        document.getElementById("prevQueryText").textContent = `"${appState.conversationHistory.previous_query}"`;
+      } else {
+        memBanner.classList.add("hidden");
+      }
+
+      renderUnderstandingBar();
+      renderMainStage();
+    }
+
+    function renderUnderstandingBar() {
+      const bar = document.getElementById("understandingBar");
+      const p = appState.parsedContext;
+      if (!p || appState.view === "idle" || appState.view === "clarification") {
+        bar.className = "hidden";
+        bar.innerHTML = "";
+        return;
+      }
+
+      bar.className = "bg-white rounded-2xl border border-slate-200/90 shadow-xs px-4 sm:px-5 py-3.5 flex flex-wrap items-center justify-between gap-2 animate-fade-in";
+      bar.innerHTML = `
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span class="font-bold text-slate-700 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Tiêu chí AI đang lọc:
+          </span>
+          <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-semibold">
+            💰 Ngân sách: ${p.budgetNote ? p.budgetNote : (p.budgetGiven ? "≤ " + formatVnd(p.maxPrice) : "chưa nêu")}
+          </span>
+          ${p.summaryTags.map(tag => `
+            <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200/60 font-medium">
+              ${tag}
+            </span>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderMainStage() {
+      const stage = document.getElementById("mainStageContainer");
+
+      // 1. IDLE
+      if (appState.view === "idle") {
+        stage.innerHTML = `
+          <div class="bg-white rounded-3xl border border-slate-200/80 p-10 text-center space-y-3 animate-fade-in">
+            <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-2xl">
+              📱
+            </div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">
+              Nhập nhu cầu mua điện thoại của bạn ở thanh tìm kiếm phía trên
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+              Ví dụ: "Tìm iPhone 15 Pro Max giá rẻ nhất" hoặc bấm vào các gợi ý có sẵn để xem danh sách đề xuất.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      // 2. CLARIFICATION DIALOG (When prompt is underspecified e.g. "Điện thoại ngon 5 triệu")
+      if (appState.view === "clarification") {
+        const p = appState.parsedContext;
+        stage.innerHTML = `
+          <div class="bg-white rounded-3xl border-2 border-blue-200 p-6 sm:p-8 shadow-sm max-w-3xl mx-auto space-y-5 animate-fade-in">
+            <div class="space-y-1.5 text-center sm:text-left">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                💡 Cần làm rõ thêm nhu cầu của bạn
+              </span>
+              <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 pt-1">
+                ${p.fallbackQuestion}
+              </h2>
+              <p class="text-xs sm:text-sm text-slate-500">
+                Trong tầm giá này mỗi dòng máy sẽ mạnh về một hướng khác nhau. Hãy chọn ưu tiên quan trọng nhất để mình lọc đúng máy cho bạn:
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <button
+                type="button"
+                data-clarify-boost="camera"
+                data-clarify-label="Chụp ảnh đẹp & Màn AMOLED"
+                class="clarify-option-btn text-left p-4 rounded-2xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50/50 transition group space-y-1.5"
+              >
+                <div class="text-2xl">📸</div>
+                <div class="font-bold text-sm text-slate-900 group-hover:text-blue-700 flex items-center justify-between">
+                  <span>Chụp ảnh đẹp</span>
+                  <span>→</span>
+                </div>
+                <p class="text-xs text-slate-500">Ưu tiên camera 50–108MP và màn hình AMOLED sắc nét.</p>
+              </button>
+
+              <button
+                type="button"
+                data-clarify-boost="performance"
+                data-clarify-label="Chơi game mượt & Màn 120Hz"
+                class="clarify-option-btn text-left p-4 rounded-2xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50/50 transition group space-y-1.5"
+              >
+                <div class="text-2xl">🎮</div>
+                <div class="font-bold text-sm text-slate-900 group-hover:text-blue-700 flex items-center justify-between">
+                  <span>Chơi game mượt</span>
+                  <span>→</span>
+                </div>
+                <p class="text-xs text-slate-500">Ưu tiên chip Helio G99 / Snapdragon, RAM 8GB và màn 120Hz.</p>
+              </button>
+
+              <button
+                type="button"
+                data-clarify-boost="battery"
+                data-clarify-label="Pin trâu cả ngày (6000mAh+)"
+                class="clarify-option-btn text-left p-4 rounded-2xl border border-slate-200 hover:border-blue-600 hover:bg-blue-50/50 transition group space-y-1.5"
+              >
+                <div class="text-2xl">🔋</div>
+                <div class="font-bold text-sm text-slate-900 group-hover:text-blue-700 flex items-center justify-between">
+                  <span>Pin trâu cả ngày</span>
+                  <span>→</span>
+                </div>
+                <p class="text-xs text-slate-500">Ưu tiên pin khủng 6000–7000mAh dùng 2–3 ngày liên tục.</p>
+              </button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // 3. ZERO MATCH RELAXATION (no device passes the hard filters, e.g. "iPhone 15 Pro Max dưới 5 triệu")
+      if (appState.view === "zero_match") {
+        renderZeroMatchStage(stage);
+        return;
+      }
+
+      // 4. SIDE-BY-SIDE COMPARISON VIEW
+      if (appState.view === "comparing") {
+        renderComparisonStage(stage);
+        return;
+      }
+
+      // 5. SHORTLIST RESULTS VIEW
+      renderResultsStage(stage);
+    }
+
+    function renderResultsStage(stage) {
+      const shortlist = appState.currentShortlist;
+
+      stage.innerHTML = `
+        <!-- Action Bar & Conversational Follow-up Chips -->
+        <div class="bg-white rounded-2xl border border-slate-200/90 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+          <div class="space-y-1">
+            <h2 class="text-sm sm:text-base font-extrabold text-slate-900">
+              Đề xuất phù hợp nhất cho bạn (${shortlist.length} máy)
+            </h2>
+            ${renderShortlistNote(shortlist)}
+            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+              <span class="text-slate-500 mr-1">Lọc thêm trên kết quả này:</span>
+              <button type="button" data-followup="Có con nào pin trâu hơn 6000mAh không?" class="followup-chip px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 font-medium transition">
+                🔋 Chỉ xem pin ≥ 6000mAh
+              </button>
+              <button type="button" data-followup="Thay hãng khác ngoài Xiaomi, ưu tiên màn AMOLED" class="followup-chip px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 font-medium transition">
+                ✨ Đổi hãng khác ngoài Xiaomi (Màn AMOLED)
+              </button>
+              <button type="button" data-followup="Hạ ngân sách xuống dưới 4 củ" class="followup-chip px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 font-medium transition">
+                💰 Hạ xuống dưới 4 triệu
+              </button>
+            </div>
+          </div>
+
+          ${shortlist.length >= 2 ? `<button
+            id="btnOpenCompareView"
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-2 shrink-0 shadow-xs"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>So sánh chi tiết ${shortlist.length} máy</span>
+          </button>` : ""}
+        </div>
+
+        <!-- Product Cards -->
+        <div class="space-y-4">
+          ${shortlist.map((item, idx) => renderConsumerProductCard(item, idx)).join("")}
+        </div>
+
+        ${renderSponsoredSlot(shortlist)}
+      `;
+    }
+
+    // Cheapest offer that is in stock and recently checked; falls back step by step.
+    function bestOffer(p) {
+      const inStock = p.offers.filter(o => o.in_stock);
+      const fresh = inStock.filter(o => !o.is_stale);
+      const pool = fresh.length ? fresh : (inStock.length ? inStock : p.offers);
+      return pool.slice().sort((a, b) => a.price_vnd - b.price_vnd)[0];
+    }
+
+    function outboundAttrs(p, off) {
+      return `data-outbound-product="${p.name}" data-outbound-seller="${off.seller_name}" data-outbound-price="${off.price_vnd}" data-outbound-url="${off.affiliate_url}" data-outbound-verified="${off.verified_label}" data-outbound-stale="${off.is_stale}" data-outbound-instock="${off.in_stock}"`;
+    }
+
+    function renderOfferButton(p, off) {
+      const priceK = (off.price_vnd / 1000).toLocaleString("vi-VN") + "k";
+      let tone;
+      let status;
+      if (!off.in_stock) {
+        tone = "border-slate-200 bg-slate-100 hover:bg-slate-200/60";
+        status = `<div class="text-[11px] text-slate-600 font-medium leading-snug">✕ Hết hàng tại nhà bán này · ${off.verified_label}</div>`;
+      } else if (off.is_stale) {
+        tone = "border-amber-300 bg-amber-50/40 hover:bg-amber-50";
+        status = `<div class="text-[11px] text-amber-800 font-medium leading-snug">⚠️ Giá kiểm tra 1 ngày trước - Bấm để xem giá mới nhất tại sàn</div>`;
+      } else {
+        tone = "border-slate-200 hover:border-blue-500 hover:bg-blue-50/40";
+        status = `<div class="text-[11px] text-slate-500 flex items-center justify-between"><span>✓ Còn hàng · ${off.verified_label}</span><span class="text-blue-600 font-semibold">Xem ngay ↗</span></div>`;
+      }
+      return `
+        <button type="button" ${outboundAttrs(p, off)} class="outbound-offer-btn text-left p-3 rounded-2xl border ${tone} transition flex flex-col justify-between gap-1 group">
+          <div class="flex items-center justify-between w-full">
+            <span class="font-bold text-xs text-slate-900 group-hover:text-blue-700">${off.in_stock ? "Mua tại" : "Xem tại"} ${off.seller_name}</span>
+            <span class="font-extrabold text-xs ${off.in_stock ? "text-blue-600" : "text-slate-400 line-through"}">${priceK}</span>
+          </div>
+          ${status}
+        </button>
+      `;
+    }
+
+    function renderShortlistNote(shortlist) {
+      const p = appState.parsedContext;
+      if (p && p.modelIds && p.modelIds.length > 0) {
+        if (shortlist.length > 1) {
+          return `<p class="text-xs text-slate-600">Đây là các mẫu bạn hỏi.</p>`;
+        }
+        const off = bestOffer(shortlist[0].product);
+        return `<p class="text-xs text-slate-600">Đây là mẫu bạn hỏi. Giá thấp nhất còn hàng, kiểm tra trong 24 giờ: <strong>${formatVnd(off.price_vnd)}</strong> tại ${off.seller_name}.</p>`;
+      }
+      if (shortlist.length < 3) {
+        return `<p class="text-xs text-amber-800">Chỉ có ${shortlist.length} máy khớp đủ điều kiện trong dữ liệu minh họa. Thử nới ngân sách hoặc bỏ bớt yêu cầu để xem thêm.</p>`;
+      }
+      return "";
+    }
+
+    // One labelled sponsored slot, kept apart from the shortlist. It never changes rank or score.
+    function renderSponsoredSlot(shortlist) {
+      const p = appState.parsedContext;
+      const shown = new Set(shortlist.map(s => s.product.id));
+      const pick = SPONSORED_DEMO
+        .map(s => ({ ...s, product: PRODUCT_CATALOG.find(x => x.id === s.product_id) }))
+        .find(s => s.product
+          && !shown.has(s.product.id)
+          && (!p || s.product.price_summary.min_price_vnd <= p.maxPrice)
+          && (!p || !p.brandExclusions.includes(s.product.brand)));
+      if (!pick) return "";
+      const prod = pick.product;
+      const off = prod.offers.find(o => o.seller_name === pick.sponsor && o.in_stock) || bestOffer(prod);
+      return `
+        <section class="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-4 sm:p-5 space-y-3 animate-fade-in">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-white">Tài trợ · minh họa</span>
+            <span class="text-[11px] text-slate-500">Hiển thị tách riêng khỏi danh sách đề xuất; khoản tài trợ không ảnh hưởng thứ hạng.</span>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <img src="${prod.image_url}" alt="${prod.name}" class="w-16 h-auto rounded-xl border border-slate-100 shrink-0" />
+            <div class="flex-1 space-y-0.5">
+              <div class="font-bold text-sm text-slate-900">${prod.name}</div>
+              <div class="text-xs text-slate-500">Nhà tài trợ: ${pick.sponsor} · ${prod.specs.display.size_inch}" · ${prod.specs.battery.capacity_mah}mAh · Sạc ${prod.specs.battery.charging_w}W</div>
+            </div>
+            <button type="button" ${outboundAttrs(prod, off)} class="outbound-offer-btn px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-800 text-xs font-semibold transition shrink-0">
+              Xem tại ${off.seller_name} (${(off.price_vnd / 1000).toLocaleString("vi-VN")}k) ↗
+            </button>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderZeroMatchStage(stage) {
+      const info = appState.zeroMatchInfo;
+      const budgetText = formatVnd(info.budgetMax);
+      const heading = info.budgetGiven
+        ? `Không có ${info.wantedLabel} nào trong mức giá ≤ ${budgetText}`
+        : `Không tìm thấy ${info.wantedLabel} trong dữ liệu minh họa`;
+      const cheapest = info.cheapestWanted
+        ? `Trong dữ liệu minh họa, <strong>${shortName(info.cheapestWanted)}</strong> có giá tham khảo thấp nhất <strong>${formatVnd(info.cheapestWanted.price_summary.min_price_vnd)}</strong>. `
+        : "";
+      const names = list => list.map(s => `<strong>${shortName(s.product)}</strong>`).join(", ");
+
+      const cardA = info.budgetGiven ? `
+        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-4">
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-blue-700">Lựa chọn 1 · Giữ ngân sách ≤ ${budgetText}</span>
+            <h3 class="font-bold text-sm sm:text-base text-slate-900">Xem máy khác trong tầm giá</h3>
+            <p class="text-xs text-slate-600">${info.pivotA.length ? `Phù hợp nhất trong tầm giá: ${names(info.pivotA)}.` : `Chưa có máy nào ≤ ${budgetText} trong dữ liệu minh họa.`}</p>
+          </div>
+          ${info.pivotA.length ? `<button id="btnPivotA" type="button" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm transition">Xem ${info.pivotA.length} máy ≤ ${budgetText} →</button>` : ""}
+        </div>
+      ` : "";
+
+      const cardB = info.pivotB.length ? `
+        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-4">
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-700">Lựa chọn ${info.budgetGiven ? 2 : 1} · Giữ ${info.keepLabel}</span>
+            <h3 class="font-bold text-sm sm:text-base text-slate-900">Nới ngân sách, xem mẫu dễ tiếp cận nhất</h3>
+            <p class="text-xs text-slate-600">Rẻ nhất trước: ${info.pivotB.map(s => `<strong>${shortName(s.product)}</strong> (từ ${formatVnd(s.product.price_summary.min_price_vnd)})`).join(", ")}.</p>
+          </div>
+          <button id="btnPivotB" type="button" class="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm transition">Xem ${info.pivotB.length} mẫu, sắp theo giá →</button>
+        </div>
+      ` : "";
+
+      stage.innerHTML = `
+        <div class="bg-white rounded-3xl border border-amber-200 p-6 sm:p-8 shadow-sm max-w-3xl mx-auto space-y-5 animate-fade-in">
+          <div class="space-y-1.5">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900">
+              Không có máy khớp tất cả điều kiện
+            </span>
+            <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 pt-1">${heading}</h2>
+            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              ${cheapest}${cardA && cardB ? `Bạn muốn giữ ngân sách hay giữ ${info.keepLabel}?` : "Bạn có thể xem hướng dưới đây."}
+            </p>
+          </div>
+          <div class="grid grid-cols-1 ${cardA && cardB ? "sm:grid-cols-2" : ""} gap-4">
+            ${cardA}${cardB}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderConsumerProductCard(item, idx) {
+      const p = item.product;
+      const conflictKeys = Object.keys(p.spec_conflicts || {});
+      const hasConflict = conflictKeys.length > 0;
+
+      return `
+        <article class="bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:border-blue-300 transition overflow-hidden animate-fade-in">
+          <div class="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+
+            <!-- Left Column: Image & Price Summary (3 cols) -->
+            <div class="md:col-span-3 flex flex-row md:flex-col items-center gap-4 text-left md:text-center">
+              <div class="relative shrink-0">
+                <img src="${p.image_url}" alt="${p.name}" class="w-28 sm:w-32 h-auto rounded-2xl border border-slate-100" />
+                <span class="absolute -top-2 -left-2 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-600 text-white shadow-xs">
+                  Hạng #${idx + 1}
+                </span>
+              </div>
+              <div class="space-y-1">
+                <div class="text-xs text-slate-400">Giá tham khảo thấp nhất</div>
+                <div class="text-lg font-extrabold text-blue-600">
+                  ${formatVnd(p.price_summary.min_price_vnd)}
+                </div>
+                <div class="text-[11px] text-slate-500">
+                  ${p.source_note}
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Specs, Pros/Cons & Merchant Links (9 cols) -->
+            <div class="md:col-span-9 space-y-4">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 class="text-base sm:text-lg font-extrabold text-slate-900">${p.name}</h3>
+                  <!-- Key Spec Pills -->
+                  <div class="flex flex-wrap gap-1.5 mt-2">
+                    <span class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
+                      📱 ${p.specs.display.size_inch}" ${p.specs.display.panel} (${p.specs.display.refresh_rate_hz}Hz)
+                    </span>
+                    <span class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
+                      🔋 ${p.specs.battery.capacity_mah}mAh · Sạc ${p.specs.battery.charging_w}W
+                    </span>
+                    <span class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
+                      ⚙️ ${p.specs.performance.chipset} · ${p.specs.performance.ram_gb}GB/${p.specs.performance.storage_gb}GB
+                    </span>
+                    <span class="text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium">
+                      📷 Camera ${p.specs.camera.rear_main_mp}MP
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Honest Pros & Cons (Trade-offs) -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/70 space-y-1.5">
+                  <div class="font-bold text-emerald-900 flex items-center gap-1.5">
+                    <span>✓ Vì sao hợp với bạn</span>
+                  </div>
+                  <ul class="space-y-1 text-emerald-950 leading-relaxed">
+                    ${p.trade_offs.strengths.map(s => `<li class="flex items-start gap-1.5"><span>•</span><span>${s}</span></li>`).join("")}
+                  </ul>
+                </div>
+
+                <div class="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/70 space-y-1.5">
+                  <div class="font-bold text-amber-900 flex items-center gap-1.5">
+                    <span>⚖️ Điểm cần đánh đổi</span>
+                  </div>
+                  <ul class="space-y-1 text-amber-950 leading-relaxed">
+                    ${p.trade_offs.weaknesses.map(w => `<li class="flex items-start gap-1.5"><span>•</span><span>${w}</span></li>`).join("")}
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Unverified Spec Note (Only if retailers disagree on a spec) -->
+              ${hasConflict ? conflictKeys.map(k => `
+                <div class="px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-700 flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded bg-amber-200/80 text-amber-950 font-semibold text-[11px] shrink-0">Chưa xác minh</span>
+                  <span>${p.spec_conflicts[k].reason}</span>
+                </div>
+              `).join("") : ""}
+
+              <!-- Multi-Merchant Purchase Links -->
+              <div class="pt-1 space-y-2">
+                <div class="text-xs font-semibold text-slate-500">
+                  Nơi bán &amp; giá đối chiếu (Bấm để sang trang nhà bán):
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  ${p.offers.map(off => renderOfferButton(p, off)).join("")}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </article>
+      `;
+    }
+
+    // ============================================================================
+    // 5. SIDE-BY-SIDE COMPARISON TABLE
+    // ============================================================================
+    function renderComparisonStage(stage) {
+      const shortlist = appState.currentShortlist;
+      const rankOf = (item) => shortlist.indexOf(item) + 1;
+
+      const rows = [
+        { section: "1. Hiệu năng & Bộ nhớ" },
+        { label: "Vi xử lý (Chipset)", vals: shortlist.map(i => i.product.specs.performance.chipset) },
+        {
+          label: "RAM & Bộ nhớ trong",
+          vals: shortlist.map(i => {
+            const c = i.product.spec_conflicts["performance.ram_gb"];
+            return `${i.product.specs.performance.ram_gb}GB / ${i.product.specs.performance.storage_gb}GB` +
+              (c ? ` <span class="inline-block ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-semibold">Chưa xác minh</span>` : "");
+          })
+        },
+        { label: "Thẻ nhớ mở rộng", vals: shortlist.map(i => i.product.specs.performance.expandable_storage) },
+
+        { section: "2. Màn hình hiển thị" },
+        { label: "Kích thước & Tấm nền", vals: shortlist.map(i => `${i.product.specs.display.size_inch}" · ${i.product.specs.display.panel}`) },
+        { label: "Độ phân giải & Tần số quét", vals: shortlist.map(i => `${i.product.specs.display.resolution} · ${i.product.specs.display.refresh_rate_hz}Hz`) },
+        {
+          label: "Độ sáng tối đa",
+          vals: shortlist.map(i => {
+            const c = i.product.spec_conflicts["display.brightness_nits"];
+            return c
+              ? `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[11px] font-semibold">Chưa xác minh (Lệch thông số giữa các sàn)</span>`
+              : `${i.product.specs.display.brightness_nits} nits`;
+          })
+        },
+
+        { section: "3. Pin & Công nghệ sạc" },
+        { label: "Dung lượng pin", vals: shortlist.map(i => `<strong>${i.product.specs.battery.capacity_mah} mAh</strong>`) },
+        { label: "Công suất sạc", vals: shortlist.map(i => `Sạc nhanh ${i.product.specs.battery.charging_w}W`) },
+
+        { section: "4. Camera" },
+        { label: "Camera sau / trước", vals: shortlist.map(i => `Sau ${i.product.specs.camera.rear_main_mp}MP · Trước ${i.product.specs.camera.front_mp}MP`) },
+        { label: "Chống rung quang học (OIS)", vals: shortlist.map(i => i.product.specs.camera.ois ? "Có OIS" : "Không") },
+
+        { section: "5. Kết nối & Tiện ích" },
+        { label: "Hỗ trợ mạng & NFC", vals: shortlist.map(i => `${i.product.specs.connectivity.network} · NFC: ${i.product.specs.connectivity.has_nfc ? "Có" : "Không"}`) },
+        { label: "Cổng tai nghe 3.5mm", vals: shortlist.map(i => i.product.specs.connectivity.headphone_jack ? "Có" : "Không") },
+        { label: "Mở khóa sinh trắc học", vals: shortlist.map(i => i.product.specs.features_build.biometrics) },
+        { label: "Kháng nước / Trọng lượng", vals: shortlist.map(i => `${i.product.specs.features_build.ip_rating || "Không kháng nước"} · ${i.product.specs.features_build.weight_g}g`) }
+      ];
+
+      const filteredRows = appState.onlyDiffInCompare
+        ? rows.filter(r => r.section || new Set(r.vals).size > 1)
+        : rows;
+
+      stage.innerHTML = `
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden animate-fade-in">
+          <div class="p-4 sm:p-5 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base sm:text-lg font-bold">So sánh chi tiết các máy trong danh sách</h2>
+              <p class="text-xs text-slate-400">Đối chiếu trực tiếp thông số kỹ thuật và giá bán giữa ${shortlist.length} thiết bị</p>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <button
+                id="btnToggleDiffOnly"
+                type="button"
+                class="px-3 py-1.5 rounded-xl border ${appState.onlyDiffInCompare ? "border-blue-400 bg-blue-500/20 text-blue-200" : "border-slate-700 bg-slate-800 text-slate-300"} text-xs font-semibold transition"
+              >
+                ${appState.onlyDiffInCompare ? "✓ Đang chỉ hiện điểm khác biệt" : "Chỉ hiện điểm khác biệt"}
+              </button>
+              <button
+                id="btnBackToResults"
+                type="button"
+                class="px-3.5 py-1.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold transition"
+              >
+                ← Quay lại danh sách
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200">
+                  <th class="p-4 font-bold text-slate-600 w-48">Thông số</th>
+                  ${shortlist.map(item => `
+                    <th class="p-4 border-l border-slate-200 min-w-[210px] align-top">
+                      <div class="inline-block px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold mb-1">
+                        Hạng #${rankOf(item)}
+                      </div>
+                      <div class="font-extrabold text-slate-900 text-sm">${item.product.name}</div>
+                      <div class="text-blue-600 font-bold mt-1">Từ ${formatVnd(item.product.price_summary.min_price_vnd)}</div>
+                    </th>
+                  `).join("")}
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                ${filteredRows.map(row => {
+                  if (row.section) {
+                    return `<tr class="bg-slate-100/80"><td colspan="${shortlist.length + 1}" class="px-4 py-2 font-bold text-xs uppercase tracking-wider text-slate-700">${row.section}</td></tr>`;
+                  }
+                  return `
+                    <tr class="hover:bg-slate-50/60">
+                      <td class="p-3.5 font-medium text-slate-600">${row.label}</td>
+                      ${row.vals.map(v => `<td class="p-3.5 border-l border-slate-200 text-slate-900">${v}</td>`).join("")}
+                    </tr>
+                  `;
+                }).join("")}
+
+                <!-- Bottom Buy Row -->
+                <tr class="bg-slate-50">
+                  <td class="p-4 font-bold text-slate-700">Chọn nơi mua</td>
+                  ${shortlist.map(i => {
+                    const p = i.product;
+                    const off = bestOffer(p);
+                    return `
+                      <td class="p-4 border-l border-slate-200">
+                        <button
+                          type="button"
+                          data-outbound-product="${p.name}"
+                          data-outbound-seller="${off.seller_name}"
+                          data-outbound-price="${off.price_vnd}"
+                          data-outbound-url="${off.affiliate_url}"
+                          data-outbound-verified="${off.verified_label}"
+                          data-outbound-stale="${off.is_stale}"
+                          data-outbound-instock="${off.in_stock}"
+                          class="outbound-offer-btn w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition text-center shadow-xs"
+                        >
+                          Mua tại ${off.seller_name} (${(off.price_vnd / 1000).toLocaleString("vi-VN")}k) ↗
+                        </button>
+                      </td>
+                    `;
+                  }).join("")}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================================================
+    // 6. EVENT LISTENERS
+    // ============================================================================
+    document.addEventListener("DOMContentLoaded", () => {
+      // Load with initial helpful consumer search
+      runSearch("Tìm máy cho mẹ ở quê dưới 7 củ, pin trâu màn to", { forceStartFresh: true });
+
+      // Search submit
+      document.getElementById("searchForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const val = document.getElementById("queryInput").value;
+        runSearch(val);
+      });
+
+      // Clear input text
+      document.getElementById("btnClearInput").addEventListener("click", () => {
+        const inp = document.getElementById("queryInput");
+        inp.value = "";
+        inp.focus();
+      });
+
+      // Brand logo click resets to default search
+      document.getElementById("btnBrandLogo").addEventListener("click", () => {
+        runSearch("Tìm máy cho mẹ ở quê dưới 7 củ, pin trâu màn to", { forceStartFresh: true });
+      });
+
+      // Header compare button
+      document.getElementById("btnHeaderCompare").addEventListener("click", () => {
+        if (appState.currentShortlist.length >= 2) {
+          appState.view = appState.view === "comparing" ? "results" : "comparing";
+          renderApp();
+        }
+      });
+
+      // Reset session
+      function resetSession() {
+        appState.view = "idle";
+        appState.conversationHistory = { previous_query: null, previous_shortlist_ids: [] };
+        appState.parsedContext = null;
+        appState.currentShortlist = [];
+        const inp = document.getElementById("queryInput");
+        inp.value = "";
+        renderApp();
+        inp.focus();
+      }
+      document.getElementById("btnResetSession").addEventListener("click", resetSession);
+      document.getElementById("btnClearMemoryInline").addEventListener("click", resetSession);
+
+      // Popular query chips
+      document.querySelectorAll(".sample-query-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+          const q = chip.getAttribute("data-sample");
+          runSearch(q, { forceStartFresh: true });
+        });
+      });
+
+      // Main stage delegated clicks
+      document.getElementById("mainStageContainer").addEventListener("click", (e) => {
+        // Follow-up refinement chip
+        const followup = e.target.closest(".followup-chip");
+        if (followup) {
+          const fq = followup.getAttribute("data-followup");
+          runSearch(fq, { isRefinement: true });
+          return;
+        }
+
+        // Clarification option
+        const clarifyBtn = e.target.closest(".clarify-option-btn");
+        if (clarifyBtn) {
+          const boost = clarifyBtn.getAttribute("data-clarify-boost");
+          const label = clarifyBtn.getAttribute("data-clarify-label");
+          runSearch(`${appState.lastQuery} — ${label}`, { clarificationBoost: boost, forceStartFresh: true });
+          return;
+        }
+
+        // Zero match: keep the budget
+        if (e.target.closest("#btnPivotA")) {
+          showPivot("A");
+          return;
+        }
+
+        // Zero match: keep the brand or model, raise the budget
+        if (e.target.closest("#btnPivotB")) {
+          showPivot("B");
+          return;
+        }
+
+        // Open comparison table
+        if (e.target.closest("#btnOpenCompareView")) {
+          appState.view = "comparing";
+          renderApp();
+          return;
+        }
+
+        // Toggle differences only in comparison
+        if (e.target.closest("#btnToggleDiffOnly")) {
+          appState.onlyDiffInCompare = !appState.onlyDiffInCompare;
+          renderApp();
+          return;
+        }
+
+        // Back to results from comparison
+        if (e.target.closest("#btnBackToResults")) {
+          appState.view = "results";
+          renderApp();
+          return;
+        }
+
+        // Outbound merchant offer button
+        const offerBtn = e.target.closest(".outbound-offer-btn");
+        if (offerBtn) {
+          const prodName = offerBtn.getAttribute("data-outbound-product");
+          const seller = offerBtn.getAttribute("data-outbound-seller");
+          const price = parseInt(offerBtn.getAttribute("data-outbound-price"), 10);
+          const verified = offerBtn.getAttribute("data-outbound-verified");
+          const isStale = offerBtn.getAttribute("data-outbound-stale") === "true";
+          const inStock = offerBtn.getAttribute("data-outbound-instock") !== "false";
+
+          const modal = document.getElementById("outboundModal");
+          const body = document.getElementById("outboundModalBody");
+          body.innerHTML = `
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+              <div class="text-xs text-slate-400">Sản phẩm bạn đã chọn</div>
+              <div class="font-extrabold text-base text-slate-900">${prodName}</div>
+              <div class="flex items-center justify-between pt-1">
+                <span class="text-xs font-semibold text-slate-600">Nhà bán: <strong>${seller}</strong></span>
+                <span class="text-sm font-extrabold text-blue-600">${formatVnd(price)}</span>
+              </div>
+              <div class="text-[11px] ${(isStale || !inStock) ? "text-amber-800 font-medium" : "text-slate-500"} pt-1">
+                ${!inStock
+                  ? `✕ Nhà bán này báo hết hàng (${verified}). Bạn vẫn có thể mở trang nhà bán để kiểm tra lại, hoặc chọn nhà bán khác.`
+                  : (isStale ? "⚠️ Giá kiểm tra 1 ngày trước — vui lòng kiểm tra lại giá cập nhật trực tiếp trên sàn." : `✓ Trạng thái: Còn hàng (${verified})`)}
+              </div>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Bạn sẽ được chuyển sang trang của <strong>${seller}</strong> để xem chương trình khuyến mãi và đặt mua trực tiếp.
+            </p>
+          `;
+          modal.classList.remove("hidden");
+        }
+      });
+
+      function closeOutboundModal() {
+        document.getElementById("outboundModal").classList.add("hidden");
+      }
+      document.getElementById("btnCloseOutboundModal").addEventListener("click", closeOutboundModal);
+      document.getElementById("btnCancelOutbound").addEventListener("click", closeOutboundModal);
+      document.getElementById("btnConfirmOutbound").addEventListener("click", closeOutboundModal);
+    });
+  </script>
+</body>
+</html>
